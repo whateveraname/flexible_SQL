@@ -1,0 +1,283 @@
+[
+  {
+    "confusion_matrix": "17(TT), 5(FT), 2(TF), 6(FF)",
+    "findings": "If the word in f_SQL appears exactly the same in the schema, the language model are likely to get wrong; Lack of consideration of cardinality correspondonce between tables;"
+  },
+  {
+    "question": "What's Angela Sanders's major?",
+    "gold_query": "SELECT T2.major_name FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T1.first_name = 'Angela' AND T1.last_name = 'Sanders'",
+    "generated_query": "SELECT major.major_name  FROM member  JOIN major ON member.link_to_major = major.major_id  WHERE member.first_name = 'Angela' AND member.last_name = 'Sanders'; ",
+    "result": "correct",
+    "f_SQL": "SELECT major WHERE student = 'Angela Sanders'",
+    "new_generated_query": "SELECT major.* FROM major JOIN member ON major.major_id = member.link_to_major WHERE member.first_name = 'Angela' AND member.last_name = 'Sanders'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "Among the students from the Student_Club who attended the event \"Women's Soccer\", how many of them want a T-shirt that's in medium size?",
+    "gold_query": "SELECT COUNT(T1.event_id) FROM event AS T1 INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event INNER JOIN member AS T3 ON T2.link_to_member = T3.member_id WHERE T1.event_name = 'Women''s Soccer' AND T3.t_shirt_size = 'Medium'",
+    "generated_query": "SELECT COUNT(*) AS medium_tshirt_count FROM member JOIN attendance ON member.member_id = attendance.link_to_member JOIN event ON attendance.link_to_event = event.event_id WHERE event.event_name = 'Women''s Soccer' AND member.t_shirt_size = 'Medium'; ",
+    "result": "correct",
+    "f_SQL": "SELECT COUNT(DISTINCT student) WHERE attended event 'Women's Soccer' AND want medium size T-shirt",
+    "new_generated_query": "SELECT COUNT(DISTINCT m.member_id)  FROM member m  JOIN attendance a ON m.member_id = a.link_to_member  JOIN event e ON a.link_to_event = e.event_id  WHERE e.event_name = 'Women''s Soccer' AND m.t_shirt_size = 'medium'; ",
+    "new_result": "wrong value"
+  },
+  {
+    "question": "Among the events attended by more than 10 members of the Student_Club, how many of them are meetings?",
+    "gold_query": "SELECT T1.event_name FROM event AS T1  INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event GROUP BY T1.event_id  HAVING COUNT(T2.link_to_event) > 10 EXCEPT SELECT T1.event_name  FROM event AS T1  WHERE T1.type = 'Meeting'",
+    "generated_query": "SELECT COUNT(*) AS meeting_count FROM event e JOIN attendance a ON e.event_id = a.link_to_event GROUP BY e.event_id HAVING COUNT(a.link_to_member) > 10 AND e.type = 'meeting'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT COUNT(DISTINCT event) WHERE attended_by > 10 AND event_type = meeting",
+    "new_generated_query": "SELECT COUNT(DISTINCT link_to_event)  FROM attendance  JOIN event ON attendance.link_to_event = event.event_id  GROUP BY link_to_event  HAVING COUNT(link_to_member) > 10 AND event.type = 'meeting'; ",
+    "new_result": "wrong",
+    "note": "wrong gold, misuse of COUNT with GROUP BY and no DISTINCT in generated_query, misuse of COUNT with GROUP BY in new_generated_query"
+  },
+  {
+    "question": "List all the names of events that had an attendance of over 20 students but were not fundraisers.",
+    "gold_query": "SELECT T1.event_name FROM event AS T1 INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event GROUP BY T1.event_id HAVING COUNT(T2.link_to_event) > 20 EXCEPT SELECT T1.event_name FROM event AS T1  WHERE T1.type = 'Fundraiser'",
+    "generated_query": "SELECT e.event_name FROM event e JOIN attendance a ON e.event_id = a.link_to_event WHERE e.type != 'fundraiser' GROUP BY e.event_id, e.event_name HAVING COUNT(a.link_to_member) > 20; ",
+    "result": "correct",
+    "f_SQL": "SELECT DISTINCT event_name WHERE attended_by > 20 students but were not fundraisers",
+    "new_generated_query": "SELECT DISTINCT e.event_name  FROM event e  JOIN attendance a ON e.event_id = a.link_to_event  WHERE e.type != 'fundraiser'  GROUP BY e.event_id  HAVING COUNT(a.link_to_member) > 20; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "What is the amount of the funds that the Vice President received?",
+    "gold_query": "SELECT T2.amount FROM member AS T1 INNER JOIN income AS T2 ON T1.member_id = T2.link_to_member WHERE T1.position = 'Vice President'",
+    "generated_query": "SELECT SUM(i.amount) AS total_funds_received FROM income i JOIN member m ON i.link_to_member = m.member_id WHERE m.position = 'Vice President'; ",
+    "result": "correct",
+    "f_SQL": "SELECT amount of funds received by Vice President",
+    "new_generated_query": "SELECT SUM(amount) AS total_funds_received FROM income WHERE link_to_member IN (     SELECT member_id     FROM member     WHERE position = 'Vice President' ); ",
+    "new_result": "correct"
+  },
+  {
+    "question": "List the full name of the Student_Club members that grew up in Illinois state.",
+    "gold_query": "SELECT T1.first_name, T1.last_name FROM member AS T1 INNER JOIN zip_code AS T2 ON T1.zip = T2.zip_code WHERE T2.state = 'Illinois'",
+    "generated_query": "SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM member WHERE zip IN (SELECT zip_code FROM zip_code WHERE state = 'Illinois'); ",
+    "result": "correct",
+    "f_SQL": "SELECT student_name WHERE grew up in Illinois state",
+    "new_generated_query": "SELECT CONCAT(first_name, ' ', last_name) AS student_name  FROM member  JOIN zip_code ON member.zip = zip_code.zip_code  WHERE zip_code.state = 'Illinois'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "Was each expense in October Meeting on October 8, 2019 approved?",
+    "gold_query": "SELECT T3.approved FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget WHERE T1.event_name = 'October Meeting' AND T1.event_date LIKE '2019-10-08%'",
+    "generated_query": "SELECT e.expense_id, e.expense_description, e.approved FROM expense e JOIN attendance a ON e.link_to_member = a.link_to_member JOIN event ev ON a.link_to_event = ev.event_id WHERE ev.event_name = 'October Meeting' AND ev.event_date = '2019-10-08'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT expense approve status WHERE event = 'October Meeting' and on October 8, 2019",
+    "new_generated_query": "SELECT approved FROM expense e JOIN event ev ON e.link_to_budget = (SELECT budget_id FROM budget b WHERE b.link_to_event = ev.event_id) WHERE ev.event_name = 'October Meeting' AND ev.event_date = '2019-10-08'",
+    "new_result": "wrong logic",
+    "note": "wrong join path for generated_query, correct join path for new_generated_query, but why not do normal join?"
+  },
+  {
+    "question": "Calculate the total average cost that Elijah Allen spent in the events on September and October.",
+    "gold_query": "SELECT AVG(T2.cost) FROM member AS T1 INNER JOIN expense AS T2 ON T1.member_id = T2.link_to_member WHERE T1.last_name = 'Allen' AND T1.first_name = 'Elijah' AND (SUBSTR(T2.expense_date, 6, 2) = '09' OR SUBSTR(T2.expense_date, 6, 2) = '10')",
+    "generated_query": "SELECT AVG(e.cost) AS average_cost FROM expense e JOIN member m ON e.link_to_member = m.member_id WHERE m.first_name = 'Elijah' AND m.last_name = 'Allen' AND MONTH(e.expense_date) IN (9, 10); ",
+    "result": "not executable",
+    "f_SQL": "SELECT AVG(cost) WHERE student = 'Elijah Allen' AND spent in September and October",
+    "new_generated_query": "SELECT AVG(e.cost) FROM expense e JOIN member m ON e.link_to_member = m.member_id WHERE m.first_name = 'Elijah' AND m.last_name = 'Allen' AND e.expense_date BETWEEN '2023-09-01' AND '2023-10-31' ",
+    "note": "wrong function for generated_query, wrong value for new_generated_query"
+  },
+  {
+    "question": "Calculate the difference of the total amount spent in all events by the Student_Club in year 2019 and 2020.",
+    "gold_query": "SELECT SUM(CASE WHEN SUBSTR(T1.event_date, 1, 4) = '2019' THEN T2.spent ELSE 0 END) - SUM(CASE WHEN SUBSTR(T1.event_date, 1, 4) = '2020' THEN T2.spent ELSE 0 END) AS num FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event",
+    "generated_query": "SELECT      (SELECT SUM(spent)       FROM budget       WHERE link_to_event IN (SELECT event_id                               FROM event                               WHERE event_date LIKE '2019%')) AS total_spent_2019,     (SELECT SUM(spent)       FROM budget       WHERE link_to_event IN (SELECT event_id                               FROM event                               WHERE event_date LIKE '2020%')) AS total_spent_2020,     (SELECT SUM(spent)       FROM budget       WHERE link_to_event IN (SELECT event_id                               FROM event                               WHERE event_date LIKE '2020%')) -      (SELECT SUM(spent)       FROM budget       WHERE link_to_event IN (SELECT event_id                               FROM event                               WHERE event_date LIKE '2019%')) AS difference ",
+    "result": "correct",
+    "f_SQL": "SELECT SUM(amount_spent in events in 2019) - SUM(amount_spent in events in 2020)",
+    "new_generated_query": "SELECT      (SELECT SUM(spent) FROM budget b       JOIN event e ON b.link_to_event = e.event_id       WHERE e.event_date LIKE '2019%') -      (SELECT SUM(spent) FROM budget b       JOIN event e ON b.link_to_event = e.event_id       WHERE e.event_date LIKE '2020%') AS amount_difference; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "What was the notes of the fundraising on 2019/9/14?",
+    "gold_query": "SELECT notes FROM income WHERE source = 'Fundraising' AND date_received = '2019-09-14'",
+    "generated_query": "SELECT notes  FROM event  WHERE event_name = 'fundraising' AND event_date = '2019/9/14'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT notes WHERE income = 'fundraising' AND time = 2019/9/14",
+    "new_generated_query": "SELECT notes FROM income WHERE source = 'fundraising' AND date_received = '2019-09-14'",
+    "new_result": "correct"
+  },
+  {
+    "question": "Tell the phone number of \"Carlo Jacobs\".",
+    "gold_query": "SELECT phone FROM member WHERE first_name = 'Carlo' AND last_name = 'Jacobs'",
+    "generated_query": "SELECT phone FROM member WHERE first_name = 'Carlo' AND last_name = 'Jacobs'; ",
+    "result": "correct",
+    "f_SQL": "SELECT phone_number WHERE student = 'Carlo Jacobs'",
+    "new_generated_query": "SELECT phone FROM member WHERE first_name = 'Carlo' AND last_name = 'Jacobs'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "What is the status of the event which bought \"Post Cards, Posters\" on 2019/8/20?",
+    "gold_query": "SELECT T1.event_status FROM budget AS T1 INNER JOIN expense AS T2 ON T1.budget_id = T2.link_to_budget WHERE T2.expense_description = 'Post Cards, Posters' AND T2.expense_date = '2019-08-20'",
+    "generated_query": "SELECT e.status  FROM event e  JOIN expense ex ON e.event_id = ex.link_to_event  WHERE ex.expense_description = 'Post Cards, Posters'  AND ex.expense_date = '2019/8/20'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT event_status WHERE bought 'Post Cards, Posters' on 2019/8/20",
+    "new_generated_query": "SELECT event_status FROM budget WHERE category IN ('Post Cards', 'Posters') AND link_to_event IN (SELECT link_to_event FROM expense WHERE expense_date = '2019-08-20'); ",
+    "new_result": "wrong"
+  },
+  {
+    "question": "What was Brent Thomason's major?",
+    "gold_query": "SELECT T2.major_name FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T1.first_name = 'Brent' AND T1.last_name = 'Thomason'",
+    "generated_query": "SELECT major.major_name  FROM member  JOIN major ON member.link_to_major = major.major_id  WHERE member.first_name = 'Brent' AND member.last_name = 'Thomason'; ",
+    "result": "correct",
+    "f_SQL": "SELECT major WHERE student = 'Brent Thomason'",
+    "new_generated_query": "SELECT major_name FROM major WHERE major_id = (SELECT link_to_major FROM member WHERE first_name = 'Brent' AND last_name = 'Thomason'); ",
+    "new_result": "correct"
+  },
+  {
+    "question": "For all the club members from \"Business\" major, how many of them wear medium size t-shirt?",
+    "gold_query": "SELECT COUNT(T1.member_id) FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T2.major_name = 'Business' AND T1.t_shirt_size = 'Medium'",
+    "generated_query": "SELECT COUNT(*) AS medium_tshirt_count FROM member WHERE link_to_major IN (SELECT major_id FROM major WHERE major_name = 'Business') AND t_shirt_size = 'Medium'; ",
+    "result": "correct",
+    "f_SQL": "SELECT COUNT(club member) WHERE major = 'Business' AND wearing medium size t-shirt",
+    "new_generated_query": "SELECT COUNT(*)  FROM member  WHERE link_to_major = (SELECT major_id FROM major WHERE major_name = 'Business')  AND t_shirt_size = 'Medium'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "Which department was the President of the club in?",
+    "gold_query": "SELECT T2.department FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T1.position = 'President'",
+    "generated_query": "SELECT department  FROM major  JOIN member ON major.major_id = member.link_to_major  WHERE member.position = 'President'; ",
+    "result": "correct",
+    "f_SQL": "SELECT department WHERE student = President of the club",
+    "new_generated_query": "SELECT m.department  FROM member m  JOIN major j ON m.link_to_major = j.major_id  WHERE m.position = 'President'; ",
+    "new_result": "wrong",
+    "note": "j.department, not m.department"
+  },
+  {
+    "question": "State the date Connor Hilton paid his/her dues.",
+    "gold_query": "SELECT T2.date_received FROM member AS T1 INNER JOIN income AS T2 ON T1.member_id = T2.link_to_member WHERE T1.first_name = 'Connor' AND T1.last_name = 'Hilton' AND T2.source = 'Dues'",
+    "generated_query": "SELECT date_received  FROM income  WHERE link_to_member = (SELECT member_id FROM member WHERE first_name = 'Connor' AND last_name = 'Hilton'); ",
+    "result": "wrong",
+    "f_SQL": "SELECT date WHERE Connor Hilton paid dues",
+    "new_generated_query": "SELECT date_received FROM income WHERE link_to_member = (SELECT member_id FROM member WHERE first_name = 'Conner' AND last_name = 'Hilton') AND source = 'dues'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "How many times was the budget in Advertisement for \"Yearly Kickoff\" meeting more than \"October Meeting\"?",
+    "gold_query": "SELECT CAST(SUM(CASE WHEN T2.event_name = 'Yearly Kickoff' THEN T1.amount ELSE 0 END) AS REAL) / SUM(CASE WHEN T2.event_name = 'October Meeting' THEN T1.amount ELSE 0 END) FROM budget AS T1 INNER JOIN event AS T2 ON T1.link_to_event = T2.event_id WHERE T1.category = 'Advertisement' AND T2.type = 'Meeting'",
+    "generated_query": "SELECT      (SELECT COUNT(*)       FROM budget       WHERE category = 'advertisement'       AND link_to_event = (SELECT event_id FROM event WHERE event_name = 'Yearly Kickoff')) AS Yearly_Kickoff_Advertisement,     (SELECT COUNT(*)       FROM budget       WHERE category = 'advertisement'       AND link_to_event = (SELECT event_id FROM event WHERE event_name = 'October Meeting')) AS October_Meeting_Advertisement WHERE      (SELECT COUNT(*)       FROM budget       WHERE category = 'advertisement'       AND link_to_event = (SELECT event_id FROM event WHERE event_name = 'Yearly Kickoff')) >      (SELECT COUNT(*)       FROM budget       WHERE category = 'advertisement'       AND link_to_event = (SELECT event_id FROM event WHERE event_name = 'October Meeting')); ",
+    "result": "wrong",
+    "f_SQL": "SELECT COUNT(budget in Advertisement for 'Yearly Kickoff' meeting more than 'October Meeting')",
+    "new_generated_query": "SELECT COUNT(*)  FROM budget  WHERE category = 'Advertisement'  AND link_to_event IN (     SELECT event_id      FROM event      WHERE event_name = 'Yearly Kickoff'      AND event_date > (         SELECT event_date          FROM event          WHERE event_name = 'October Meeting'     ) ); ",
+    "new_result": "wrong",
+    "f_SQL2": "SELECT budget for 'Yearly Kickoff' meeting / budget for 'October Meeting' WHERE budget in Advertisement",
+    "new_genarated_query2": "SELECT b1.amount AS budget_for_yearly_kickoff, b2.amount AS budget_for_october_meeting FROM budget b1 JOIN event e1 ON b1.link_to_event = e1.event_id JOIN budget b2 ON b2.link_to_event = (SELECT event_id FROM event WHERE event_name = 'October Meeting') WHERE e1.event_name = 'Yearly Kickoff' AND b1.category = 'Advertisement' AND b2.category = 'Advertisement'",
+    "new_result2": "logically correct but not using /"
+  },
+  {
+    "question": "What is the total cost of the pizzas for all the events?",
+    "gold_query": "SELECT SUM(cost) FROM expense WHERE expense_description = 'Pizza'",
+    "generated_query": "SELECT SUM(cost) AS total_cost_of_pizzas FROM expense WHERE expense_description LIKE '%pizza%'; ",
+    "result": "correct",
+    "f_SQL": "SELECT SUM(cost of pizzas)",
+    "new_generated_query": "SELECT SUM(cost) AS total_cost_of_pizzas FROM expense WHERE expense_description LIKE '%pizza%'; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "How many cities are there in Orange County, Virginia?",
+    "gold_query": "SELECT COUNT(city) FROM zip_code WHERE county = 'Orange County' AND state = 'Virginia'",
+    "generated_query": "SELECT COUNT(DISTINCT city) AS city_count FROM zip_code WHERE county = 'Orange' AND state = 'Virginia'; ",
+    "result": "wrong value",
+    "f_SQL": "SELECT COUNT(city) WHERE in Orange County, Virginia",
+    "new_generated_query": "SELECT COUNT(city) FROM zip_code WHERE county = 'Orange' AND state = 'Virginia'; ",
+    "new_result": "wrong value"
+  },
+  {
+    "question": "What does the person with the phone number \"809-555-3360\" major in?",
+    "gold_query": "SELECT T2.major_name FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T1.phone = '809-555-3360'",
+    "generated_query": "SELECT major.major_name  FROM member  JOIN major ON member.link_to_major = major.major_id  WHERE member.phone = '809-555-3360'; ",
+    "result": "correct",
+    "f_SQL": "SELECT major WHERE phone_number = 809-555-3360",
+    "new_generated_query": "SELECT major.* FROM major JOIN member ON major.major_id = member.link_to_major WHERE member.phone = '809-555-3360'; ",
+    "new_result": "extra columns"
+  },
+  {
+    "question": "How many members attended the \"Women's Soccer\" event?",
+    "gold_query": "SELECT COUNT(T2.link_to_member) FROM event AS T1 INNER JOIN attendance AS T2 ON T1.event_id = T2.link_to_event WHERE T1.event_name = 'Women''s Soccer'",
+    "generated_query": "SELECT COUNT(DISTINCT a.link_to_member) AS member_count FROM attendance a JOIN event e ON a.link_to_event = e.event_id WHERE e.event_name = 'Women''s Soccer'; ",
+    "result": "correct",
+    "f_SQL": "SELECT COUNT(member) WHERE attended 'Women's Soccer' event",
+    "new_generated_query": "SELECT COUNT(link_to_member)  FROM attendance  WHERE link_to_event = (SELECT event_id FROM event WHERE event_name = 'Women''s Soccer'); ",
+    "new_result": "correct"
+  },
+  {
+    "question": "List all the members of the \"School of Applied Sciences, Technology and Education\" department.",
+    "gold_query": "SELECT T1.first_name, T1.last_name FROM member AS T1 INNER JOIN major AS T2 ON T1.link_to_major = T2.major_id WHERE T2.department = 'School of Applied Sciences, Technology and Education'",
+    "generated_query": "SELECT m.member_id, m.first_name, m.last_name, m.email, m.position, m.t_shirt_size, m.phone, m.zip FROM member m JOIN major j ON m.link_to_major = j.major_id WHERE j.department = 'School of Applied Sciences, Technology and Education'; ",
+    "result": "correct",
+    "f_SQL": "SELECT member WHERE department = 'School of Applied Sciences, Technology and Education'",
+    "new_generated_query": "SELECT * FROM member WHERE link_to_major IN (SELECT major_id FROM major WHERE department = 'School of Applied Sciences, Technology and Education'); ",
+    "new_result": "extra columns"
+  },
+  {
+    "question": "Among all the closed events, which event has the highest spend-to-budget ratio?",
+    "gold_query": "SELECT T2.event_name FROM budget AS T1 INNER JOIN event AS T2 ON T1.link_to_event = T2.event_id WHERE T2.status = 'Closed' ORDER BY T1.spent / T1.amount DESC LIMIT 1",
+    "generated_query": "SELECT e.event_name,         b.amount AS budgeted_amount,         SUM(ex.cost) AS total_spent,         (SUM(ex.cost) / b.amount) AS spend_to_budget_ratio FROM event e JOIN budget b ON e.event_id = b.link_to_event JOIN expense ex ON b.link_to_budget = ex.link_to_budget WHERE e.status = 'closed' GROUP BY e.event_name, b.amount ORDER BY spend_to_budget_ratio DESC LIMIT 1; ",
+    "result": "not executable",
+    "f_SQL": "SELECT event WHERE event is closed ORDER BY spend-to-budget ratio DESC LIMIT 1",
+    "new_generated_query": "SELECT e.event_id, e.event_name, e.event_date, e.type, e.notes, e.location, e.status,         (b.spent / b.amount) AS spend_to_budget_ratio FROM event e JOIN budget b ON e.event_id = b.link_to_event WHERE e.status = 'closed' ORDER BY spend_to_budget_ratio DESC LIMIT 1; ",
+    "new_result": "extra columns"
+  },
+  {
+    "question": "What is the highest amount of budget spend for an event?",
+    "gold_query": "SELECT MAX(spent) FROM budget",
+    "generated_query": "SELECT MAX(spent) AS highest_budget_spent FROM budget; ",
+    "result": "correct",
+    "f_SQL": "SELECT MAX(amount of budget spend for an event)",
+    "new_generated_query": "SELECT MAX(spent) FROM budget; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "What is the total amount of money spent for food?",
+    "gold_query": "SELECT SUM(spent) FROM budget WHERE category = 'Food'",
+    "generated_query": "SELECT SUM(cost) AS total_spent_on_food FROM expense WHERE expense_description LIKE '%food%'; ",
+    "result": "wrong answer",
+    "f_SQL": "SELECT SUM(money spent for food)",
+    "new_generated_query": "SELECT SUM(spent) AS total_food_spent FROM budget WHERE category = 'food'; ",
+    "new_result": "wrong value"
+  },
+  {
+    "question": "List the name of students that have attended more than 7 events.",
+    "gold_query": "SELECT T1.first_name, T1.last_name FROM member AS T1 INNER JOIN attendance AS T2 ON T1.member_id = T2.link_to_member GROUP BY T2.link_to_member HAVING COUNT(T2.link_to_event) > 7",
+    "generated_query": "SELECT m.first_name, m.last_name FROM member m JOIN attendance a ON m.member_id = a.link_to_member GROUP BY m.member_id HAVING COUNT(a.link_to_event) > 7; ",
+    "result": "correct",
+    "f_SQL": "SELECT DISTINCT student_name WHERE attended_events > 7",
+    "new_generated_query": "SELECT DISTINCT CONCAT(m.first_name, ' ', m.last_name) AS student_name FROM member m JOIN attendance a ON m.member_id = a.link_to_member GROUP BY m.member_id HAVING COUNT(a.link_to_event) > 7; ",
+    "new_result": "correct"
+  },
+  {
+    "question": "Which student has been entrusted to manage the budget for the Yearly Kickoff?",
+    "gold_query": "SELECT T4.first_name, T4.last_name FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget INNER JOIN member AS T4 ON T3.link_to_member = T4.member_id WHERE T1.event_name = 'Yearly Kickoff'",
+    "generated_query": "SELECT m.first_name, m.last_name FROM member m JOIN budget b ON m.member_id = b.link_to_member JOIN event e ON b.link_to_event = e.event_id WHERE e.event_name = 'Yearly Kickoff'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT student entrusted to manage the budget for the Yearly Kickoff",
+    "new_generated_query": "SELECT m.first_name, m.last_name  FROM member m  JOIN budget b ON m.member_id = b.link_to_member  JOIN event e ON b.link_to_event = e.event_id  WHERE e.event_name = 'Yearly Kickoff'  AND m.position = 'Budget Manager'; ",
+    "new_result": "wrong schema"
+  },
+  {
+    "question": "Which event has the lowest cost?",
+    "gold_query": "SELECT T1.event_name FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget ORDER BY T3.cost LIMIT 1",
+    "generated_query": "SELECT e.event_name, MIN(exp.cost) AS lowest_cost FROM event e JOIN budget b ON e.event_id = b.link_to_event JOIN expense exp ON b.link_to_event = exp.link_to_budget GROUP BY e.event_name ORDER BY lowest_cost ASC LIMIT 1; ",
+    "result": "not executable",
+    "f_SQL": "SELECT event ORDER BY cost LIMIT 1",
+    "new_generated_query": "SELECT e.* FROM event e JOIN budget b ON e.event_id = b.link_to_event ORDER BY b.amount LIMIT 1; ",
+    "new_result": "wrong logic"
+  },
+  {
+    "question": "Based on the total cost for all event, what is the percentage of cost for Yearly Kickoff event?",
+    "gold_query": "SELECT CAST(SUM(CASE WHEN T1.event_name = 'Yearly Kickoff' THEN T3.cost ELSE 0 END) AS REAL) * 100 / SUM(T3.cost) FROM event AS T1 INNER JOIN budget AS T2 ON T1.event_id = T2.link_to_event INNER JOIN expense AS T3 ON T2.budget_id = T3.link_to_budget",
+    "generated_query": "SELECT      (SUM(e.cost) / (SELECT SUM(cost) FROM expense)) * 100 AS percentage_of_cost FROM      expense e JOIN      attendance a ON e.link_to_event = a.link_to_event JOIN      event ev ON a.link_to_event = ev.event_id WHERE      ev.event_name = 'Yearly Kickoff'; ",
+    "result": "not executable",
+    "f_SQL": "SELECT cost for Yearly Kickoff event / SUM(cost for all events)",
+    "new_generated_query": "SELECT      (SELECT cost FROM expense WHERE link_to_budget IN (SELECT budget_id FROM budget WHERE link_to_event = (SELECT event_id FROM event WHERE event_name = 'Yearly Kickoff'))) /      (SELECT SUM(cost) FROM expense) AS cost_ratio; ",
+    "new_result": "wrong",
+    "note": "should be SUM(cost)"
+  },
+  {
+    "question": "Indicate the top source of funds received in September 2019 based on their amount.",
+    "gold_query": "SELECT source FROM income WHERE date_received BETWEEN '2019-09-01' and '2019-09-30' ORDER BY source DESC LIMIT 1",
+    "generated_query": "SELECT source, SUM(amount) AS total_amount FROM income WHERE date_received >= '2019-09-01' AND date_received < '2019-10-01' GROUP BY source ORDER BY total_amount DESC LIMIT 1; ",
+    "result": "correct",
+    "f_SQL": "SELECT fund_source WHERE received in September 2019 ORDER BY amount DESC LIMIT 1",
+    "new_generated_query": "SELECT source FROM income WHERE date_received BETWEEN '2019-09-01' AND '2019-09-30' ORDER BY amount DESC LIMIT 1; ",
+    "new_result": "wrong logic"
+  }
+]
